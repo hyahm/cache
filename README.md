@@ -1,4 +1,4 @@
-# 缓存算法（lru, lfu,）
+# 缓存算法（lru, lfu, alfu）
  线程安全的go语言通用lru, lfu算法
 ### 安装
 ```
