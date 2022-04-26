@@ -43,7 +43,7 @@ func main() {
 ```
 > 万能的add方法, 只要是添加值都可以使用此方法, 存在就会更新, 不存在就会插入
 ```
-cache.Add(key, value interface{})
+cache.Add(key, value any)
 ```
 > 顺序打印(调试用)
 ```
@@ -52,11 +52,11 @@ cache.OrderPrint(level int)
 
 > 删除key
 ```
-cache.Remove(key interface{})
+cache.Remove(key any)
 ```
 > 获取所有的key, 没有就返回空, 返回的key因为执行时间的问题, 可能导致有些key被删除了
 ```
-cache.Keys(key interface{}) []interface{}
+cache.Keys(key any) []any
 ```
 > 获取缓存长度 
 ```
@@ -64,7 +64,7 @@ cache.Len() uint64
 ```
 > 根据key获取值
 ```
-cache.Get(key interface{}) interface{}
+cache.Get(key any) any
 ```
 
 
