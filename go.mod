@@ -1,3 +1,3 @@
 module github.com/hyahm/cache
 
-go 1.13
+go 1.18

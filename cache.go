@@ -2,13 +2,13 @@ package cache
 
 import "sync"
 
-type Cacher interface {
-	Add(key, value interface{})
-	Remove(key interface{})
+type Cacher[K comparable, V any] interface {
+	Add(key K, value V)
+	Remove(key K)
 	Len() int
 	OrderPrint(int)
-	Get(key interface{}) interface{}
-	LastKey() interface{}
+	Get(key K) (V, bool)
+	LastKey() K
 }
 
 type Algorithm int
@@ -19,35 +19,35 @@ const (
 	ALFU
 )
 
-func NewCache(n int, t Algorithm) Cacher {
+func NewCache[K comparable, V any](n int, t Algorithm) Cacher[K, V] {
 	// 内存足够的话, 可以设置很大, 所有计算都是O(1)
 	if n <= 0 {
 		n = 2 << 10
 	}
 	switch t {
 	case LRU:
-		return &Lru{
-			lru:  make(map[interface{}]*element, 0),
+		return &Lru[K, V]{
+			lru:  make(map[K]*element[K, V]),
 			size: n,
 			lock: sync.RWMutex{},
-			root: &element{},
-			last: &element{},
+			root: &element[K, V]{},
+			last: &element[K, V]{},
 		}
 	case LFU:
-		return &Lfu{
-			frequent: make(map[int]*Lru),
+		return &Lfu[K, V]{
+			frequent: make(map[int]*Lru[K, V]),
 
 			// 这里是根据key来查询在那一层
-			cache: make(map[interface{}]int),
+			cache: make(map[K]int),
 			mu:    sync.RWMutex{},
 			size:  n,
 		}
 	case ALFU:
-		alfu := &Alfu{
-			frequent: make(map[int]*Lru),
+		alfu := &Alfu[K, V]{
+			frequent: make(map[int]*Lru[K, V]),
 
 			// 这里是根据key来查询在那一层
-			cache: make(map[interface{}]int),
+			cache: make(map[K]int),
 			mu:    sync.RWMutex{},
 			size:  DEFAULTCOUNT,
 		}

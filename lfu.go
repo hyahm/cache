@@ -2,22 +2,23 @@ package cache
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 )
 
 // 以lru为基础
 
-type Lfu struct {
-	frequent map[int]*Lru
+type Lfu[K comparable, V any] struct {
+	frequent map[int]*Lru[K, V]
 
 	// 这里是根据key来查询在那一层
-	cache map[interface{}]int
+	cache map[K]int
 	min   int // 记录当前最小层的值
 	mu    sync.RWMutex
 	size  int // 大小
 }
 
-func (lfu *Lfu) OrderPrint(frequent int) {
+func (lfu *Lfu[K, V]) OrderPrint(frequent int) {
 	lfu.mu.RLock()
 	defer lfu.mu.RUnlock()
 	for frequent, lru := range lfu.frequent {
@@ -29,42 +30,42 @@ func (lfu *Lfu) OrderPrint(frequent int) {
 
 // 为了方便修改， 一样也需要一个双向链表
 
-func (lfu *Lfu) add(index int, key, value interface{}) {
+func (lfu *Lfu[K, V]) add(index int, key K, value V) {
 	if _, ok := lfu.frequent[index]; !ok {
-		lfu.frequent[index] = &Lru{
-			lru:  make(map[interface{}]*element, 0),
+		lfu.frequent[index] = &Lru[K, V]{
+			lru:  make(map[K]*element[K, V], 0),
 			size: lfu.size,
 			lock: sync.RWMutex{},
-			root: &element{},
-			last: &element{},
+			root: &element[K, V]{},
+			last: &element[K, V]{},
 		}
 	}
 
 	lfu.frequent[index].Add(key, value)
 }
 
-func (lfu *Lfu) getMin(start int) int {
-	if _, ok := lfu.cache[start]; ok && lfu.frequent[start].Len() > 0 {
+func (lfu *Lfu[K, V]) getMin(start int) int {
+	if lfu.frequent[start].Len() > 0 {
 		return start
 	} else {
 		return lfu.getMin(start + 1)
 	}
 }
 
-func (lfu *Lfu) Len() int {
+func (lfu *Lfu[K, V]) Len() int {
 	lfu.mu.RLock()
 	defer lfu.mu.RUnlock()
 	return len(lfu.cache)
 }
 
 // get lastKey
-func (lfu *Lfu) LastKey() interface{} {
+func (lfu *Lfu[K, V]) LastKey() K {
 	lfu.mu.RLock()
 	defer lfu.mu.RUnlock()
 	return lfu.frequent[lfu.min].LastKey()
 }
 
-func (lfu *Lfu) Remove(key interface{}) {
+func (lfu *Lfu[K, V]) Remove(key K) {
 	lfu.mu.Lock()
 	defer lfu.mu.Unlock()
 	// 先找到这个key
@@ -76,7 +77,7 @@ func (lfu *Lfu) Remove(key interface{}) {
 	}
 }
 
-func (lfu *Lfu) Add(key, value interface{}) {
+func (lfu *Lfu[K, V]) Add(key K, value V) {
 	// 添加一个key
 	lfu.mu.Lock()
 	defer lfu.mu.Unlock()
@@ -110,7 +111,7 @@ func (lfu *Lfu) Add(key, value interface{}) {
 }
 
 //
-func (lfu *Lfu) Get(key interface{}) interface{} {
+func (lfu *Lfu[K, V]) Get(key K) (V, bool) {
 	lfu.mu.RLock()
 	defer lfu.mu.RUnlock()
 	if index, ok := lfu.cache[key]; ok {
@@ -118,6 +119,7 @@ func (lfu *Lfu) Get(key interface{}) interface{} {
 			return v.Get(key)
 		}
 	}
-	return nil
+	var v V
+	return reflect.Zero(reflect.TypeOf(v)).Interface().(V), false
 
 }
